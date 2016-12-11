@@ -1,0 +1,24 @@
+{
+  "name": "sass-learnings",
+  "version": "1.0.0",
+  "description": "A project for learning sass, a css script language.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gnu4cn/sass-learnings.git"
+  },
+  "keywords": [
+    "sass",
+    "gulp-sass",
+    "css"
+  ],
+  "author": "Peng Hailin, unisko@gmail.com",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/gnu4cn/sass-learnings/issues"
+  },
+  "homepage": "https://github.com/gnu4cn/sass-learnings#readme"
+}
