@@ -20,5 +20,9 @@
   "bugs": {
     "url": "https://github.com/gnu4cn/sass-learnings/issues"
   },
-  "homepage": "https://github.com/gnu4cn/sass-learnings#readme"
+  "homepage": "https://github.com/gnu4cn/sass-learnings#readme",
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-sass": "^3.0.0"
+  }
 }
