@@ -1,0 +1,7 @@
+{
+"version": 3,
+"mappings": "AAAA,OAAQ;EACN,KAAK,EAAE,OAAO;EACd,KAAK,EAAE,GAAG;EAEV,eAAQ;IACN,gBAAgB,EAAE,OAAO;IACzB,KAAK,EAAE,OAAO",
+"sources": ["nested_rules.scss"],
+"names": [],
+"file": "nested_rules.css"
+}
