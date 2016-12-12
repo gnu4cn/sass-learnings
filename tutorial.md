@@ -112,3 +112,97 @@ Sass中允许CSS规则嵌套于其它规则内部。此时内部规则仅应用�
     background-color: #ff0000;
     color: #000000; }
 ```
+
+这样做有助于避免父选择器的重复，同时令到有着大量嵌套选择器的复杂CSS布局简单多了。比如：
+
+```scss
+#main {
+  width: 97%;
+
+  p, div {
+    font-size: 2em;
+    a { font-weight: bold; }
+  }
+
+  pre { font-size: 3em; }
+}
+```
+
+将被编译为：
+
+```css
+#main {
+  width: 97%; }
+  #main p, #main div {
+    font-size: 2em; }
+    #main p a, #main div a {
+      font-weight: bold; }
+  #main pre {
+    font-size: 3em; }
+```
+
+### 使用`&`来实现对父选择器的引用（Referencing Parent Selectors: `&`）
+
+某些时候，比起默认对父选择器的使用，以其它方式使用父选择器是有用处的。比如，在鼠标经过事件（hovered over）时要有特殊样式，或者body元素有着明确类的时候（you might want to have special styles for when that selector is hovered over or for when the body element has a certain class）。那么，就可以使用`&`字符，来显式地指定父选择器应在何处插入。比如：
+
+```scss
+a {
+  font-weight: bold;
+  text-decoration: none;
+  &:hover { text-decoration: underline; }
+  body.firefox & { font-weight: normal; }
+}
+```
+
+将被编译为：
+
+```css
+a {
+  font-weight: bold;
+  text-decoration: none; }
+  a:hover {
+    text-decoration: underline; }
+  body.firefox a {
+    font-weight: normal; }
+```
+
+`&`将在CSS中其出现的地方，以父选择器进行替换。这就意味着当有着嵌套很深的规则时，在`&`被替换之前，该父选择器将被完整保留（be resolved）。比如：
+
+```scss
+#main {
+  color: black;
+  a {
+    font-weight: bold;
+    &:hover { color: red; }
+  }
+}
+```
+
+将被编译为：
+
+```css
+#main {
+  color: black; }
+  #main a {
+    font-weight: bold; }
+    #main a:hover {
+      color: red; }
+```
+
+`&`必须出现在某个复合选择器（a compound selector）的开头，不过其后面可以跟上一个后缀，该后缀将被添加到父选择器上。比如：
+
+```scss
+#main {
+  color: black;
+  &-sidebar { border: 1px solid; }
+}
+```
+
+将被编译为：
+
+```css
+#main {
+  color: black; }
+  #main-sidebar {
+    border: 1px solid; }
+```    
