@@ -17,3 +17,11 @@ $width-default: 90%;
         width: $width_default;
     }
 }
+
+@mixin firefox-message($selector: string) {
+        body.firefox #{$selector}:before {
+            content: "Hi, Firefox users!";
+        }
+}
+
+@include firefox-message(".header");

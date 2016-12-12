@@ -427,3 +427,20 @@ body.firefox .header:before {
   content: "Hi, Firefox users!"; }
 ```
 
+#### 清单（Lists）
+
+清单是Sass用于表示诸如`margin: 10px 15px 0 0`或者`font-face: Helvetica, Arial, sans-serif`这样的CSS声明的方式。清单就是一系列由空格或逗号分隔的其它值。实际上单个数值也算作是清单的：它们只是仅有一个条目的清单。
+
+仅有清单本身，并不能完成什么，但[SassScript的清单函数](http://sass-lang.com/documentation/Sass/Script/Functions.html#list-functions)，让其有着用处了。[函数`nth`](http://sass-lang.com/documentation/Sass/Script/Functions.html#nth-instance_method)可访问到某个清单中的条目，而[join函数](http://sass-lang.com/documentation/Sass/Script/Functions.html#join-instance_method)则可以将多个清单结合起来，同时[append函数](http://sass-lang.com/documentation/Sass/Script/Functions.html#append-instance_method)可将一些条目添加到清单上。[`@each`指令](http://sass-lang.com/documentation/file.SASS_REFERENCE.html#each-directive)还可以为清单中的各个条目添加上样式。
+
+清单除了可以包含简单数值，还可以包含其它清单。比如`1px 2px, 5px 6px`是一个两条目清单，包含了清单`1px 2px`及清单`5px 6px`。加入内部清单使用了外部清单相同的分隔符，那么就要使用括号来令到内部清单是从何处开始及结束的。比如`(1px 2px) (5px 6px)`同样是一个两条目清单，包含了清单`1px 2px`与清单`5px 6px`。区别在于外部清单是空格分隔的，而之前则是逗号分隔的。
+
+在清单被转化为普通CSS时，Sass并不会添加任何的括号，因为CSS无法理解括号。这就意味着`(1px 2px) (5px 6px)`及`1px 2px 5px 6px`在转变为CSS是是一样的了。但当它们作为Sass时则是不同的：第一个清单包含了两个清单，而第二个这是包含了4个数字的单个清单。
+
+清单也可以是没有条目的。这些清单被表示为`()`（其同时也是一个空的map）。它们是不可以直接输出到CSS的; 比如在尝试`font-family: ()`时，Sass将产生一个错误。而假如某个清单包含了空白清单或空值，比如`1px 2px () 3px`或`2px null 3px`，这里的空白清单与空值，将在包含其的清单被转换到CSS时，被移除。
+
+逗号分隔的清单，可以有着一个末尾的逗号。因为这样做允许表示一个单一元素的清单，而特别有用。比如`(1,)`，是一个包含着`1`的清单，而`(1 2 3,)`则是一个包含了一个空格分隔清单`1, 2, 3`的逗号分隔清单。
+
+#### 字典（Maps）
+
+

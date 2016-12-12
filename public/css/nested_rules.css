@@ -9,3 +9,6 @@
     background-color: #00ff00;
     color: #000000;
     width: 97%; }
+
+body.firefox .header:before {
+  content: "Hi, Firefox users!"; }
