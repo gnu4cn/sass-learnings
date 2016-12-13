@@ -832,7 +832,22 @@ p {
 .foo.bar .baz.bang, .bip.qux {
   $selector: &;
 }
+```
 
-此时`$selector`的值为``(("".foo.bar"" "".baz.bang""), "".bip.qux"")`。
+此时`$selector`的值为`((".foo.bar" ".baz.bang"), ".bip.qux")。这里引用该复合选择器，目的是表明它们是一些字符串，但在现实中，它们应是不带引号的。就算父选择器不包含逗号或空格，`&`仍将始终有着两个级别的嵌套，因此`&`可被一致性地访问到。
 
+在没有父选择器的情况下，`&`的值将为空。这就意味着可在mixin中使用它来探测是否存在一个父选择器：
 
+```scss
+@mixin does-parent-exist {
+  @if & {
+    &:hover {
+      color: red;
+    }
+  } @else {
+    a {
+      color: red;
+    }
+  }
+}
+```
