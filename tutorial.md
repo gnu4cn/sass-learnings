@@ -833,5 +833,6 @@ p {
   $selector: &;
 }
 
-此时`$selector`的值为<code>((".foo.bar" ".baz.bang"), ".bip.qux")</code>。
+此时`$selector`的值为((".foo.bar" ".baz.bang"), ".bip.qux")。
+
 
