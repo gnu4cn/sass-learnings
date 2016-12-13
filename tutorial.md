@@ -833,6 +833,6 @@ p {
   $selector: &;
 }
 
-此时`$selector`的值为((".foo.bar" ".baz.bang"), ".bip.qux")。
+此时`$selector`的值为``(("".foo.bar"" "".baz.bang""), "".bip.qux"")`。
 
 
