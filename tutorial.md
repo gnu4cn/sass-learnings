@@ -530,4 +530,204 @@ p {
 
 ##### 关于减法、负数与`-`（subtraction, Negative Numbers, and `-`）
 
+在CSS与Sass中，有着一些差异。差异就可能是减法运算符（就像`5px - 3px`）、负数的开头（比如`-3px`）、某个一元减运算符（比如`-$var`），或是作为标识符的一部分（比如`font-weight`）。多数情况下，`-`都很清楚其用法，但存在一些棘手的情况。作为通用规则，满足下面的规则，最为安全：
+
+- 在做减法时，请一直在`-`两边留有空格
+- 做一元减运算时，要在`-`前留有空格，`-`没有空格
+- 假如一元减运算位于某个清单中，请将其用括号括起来，比如`10px (-$var)`
+
+依以下优先顺序，`-`有着不同不同的意义：
+
+1. 某个`-`作为标识符的一部分。这就是说`a-1`是一个没有引号的字符串，其值为`"a-1"`。唯一例外就是单位了; Sass通常允许任意有效的标识符作为标识符使用，但标识符不能包含跟随一个数字的短横线（identifiers may not contain a hyphen followed by a digit）。这就意味着`5px-3px`与`5px - 3px`是相同的。
+2. 某个`-`处于两个数字之间，没有逗号。这表示减法，所以`1-2`与`1 - 2`是相同的。
+3. 某个`-`位处某个字面数字（a literal number）的开头。这表示一个负数，那么`1 -2`就是一个清单，包含了`1`和`-2`。
+4. 某个`-`两个无关空格的数字之间（between two numbers regardless of whitespace）。这表示减法，那么`1 -$var`就与`1 - $var`相同。
+5. 某个`-`在数值之前。这表示其为一元减运算符; 就是该运算符取某个数字，并返回其负值。
+
+*译者测试代码（一元减运算符）*：
+
+```scss
+$var: -2px;
+
+p {
+    font: {
+        size: -$var;
+    }
+}
+```
+
+将被编译为：
+
+```css
+p {
+  font-size: 2px; }
+```
+
+#### 关于颜色的运算（Color Operations）
+
+对于颜色数值，所有算术运算都是支持的，以分段进行（all arithmetic operations are supported for color values, where they work piecewise）。这就是说，运算是基于红色、绿色与蓝色部件依序执行的。比如：
+
+```scss
+p {
+  color: #010203 + #040506;
+}
+```
+
+将计算`01 + 04 = 05`、`02 + 05 = 07`以及`03 + 06 = 09`，而编译为：
+
+```css
+p {
+  color: #050709; }
+```
+
+对于达成同样效果，通常使用那些[颜色函数](http://sass-lang.com/documentation/Sass/Script/Functions.html)更为有用, 而不是尝试颜色算术运算。
+
+在数字与颜色之间，也可进行算术运算，这同样是分段进行的。比如：
+
+```scss
+p {
+  color: #010203 * 2;
+}
+```
+
+将进行`01 * 2 = 02`、`02 * 2 = 04`及`03 * 2 = 06`的计算，并为编译为：
+
+```css
+p {
+  color: #020406; }
+```
+
+请注意那些带有alpha通道的颜色（使用[`rgba`](http://sass-lang.com/documentation/Sass/Script/Functions.html#rgba-instance_method)与[hsla](http://sass-lang.com/documentation/Sass/Script/Functions.html#hsla-instance_method)函数来创建出的颜色），要对这些颜色进行颜色算术运算，它们就必须要有相同的alpha值。算术运算不会对alpha值有所影响。比如：
+
+```scss
+p {
+  color: rgba(255, 0, 0, 0.75) + rgba(0, 255, 0, 0.75);
+}
+```
+
+将被编译为：
+
+```css
+p {
+  color: rgba(255, 255, 0, 0.75); }
+```
+
+某个颜色的alpha通道，可使用[opacify](http://sass-lang.com/documentation/Sass/Script/Functions.html#opacify-instance_method)及[trasparentize](http://sass-lang.com/documentation/Sass/Script/Functions.html#transparentize-instance_method)函数进行调整。比如：
+
+```scss
+$translucent-red: rgba(255, 0, 0, 0.5);
+p {
+  color: opacify($translucent-red, 0.3);
+  background-color: transparentize($translucent-red, 0.25);
+}
+```
+
+将被编译为：
+
+```scss
+p {
+  color: rgba(255, 0, 0, 0.8);
+  background-color: rgba(255, 0, 0, 0.25); }
+```
+
+IE浏览器的各种滤镜，要求全部颜色都包含alpha层（the alpha layer），且要以`#AABBCCDD`这种严格的形式表示。而使用[ie_hex_str](http://sass-lang.com/documentation/Sass/Script/Functions.html#ie_hex_str-instance_method)函数，就可以容易地对颜色进行转换。比如：
+
+```scss
+$translucent-red: rgba(255, 0, 0, 0.5);
+$green: #00ff00;
+div {
+  filter: progid:DXImageTransform.Microsoft.gradient(enabled='false', startColorstr='#{ie-hex-str($green)}', endColorstr='#{ie-hex-str($translucent-red)}');
+}
+```
+
+将被编译为：
+
+```css
+div {
+  filter: progid:DXImageTransform.Microsoft.gradient(enabled='false', startColorstr=#FF00FF00, endColorstr=#80FF0000);
+}
+```
+
+#### 关于字符串运算（String Operations）
+
+`+`运算可用于连接字符串：
+
+```scss
+p {
+  cursor: e + -resize;
+}
+```
+
+将被编译为：
+
+```css
+p {
+  cursor: e-resize; }
+```
+
+请注意在将某个带引号字符串添加到不带引号字符串上时（也就是带引号字符串位处`+`的左边），结果将是一个带引号字符串。相反，如果某个不带引号字符串被添加到一个带引号字符串上时（不带引号字符串位处`+`的左边），结果将是一个不带引号字符串。比如：
+
+```scss
+p:before {
+  content: "Foo " + Bar;
+  font-family: sans- + "serif";
+}
+```
+
+将被编译为：
+
+```css
+p:before {
+  content: "Foo Bar";
+  font-family: sans-serif; }
+```
+
+而默认情况下，如两个值放在一起，则它们将用一个空格连接起来：
+
+```scss
+p {
+  margin: 3px + 4px auto;
+}
+```
+
+将被编译为：
+
+```css
+p {
+  margin: 7px auto; }
+```
+
+在文本字符串内部，`#{}`风格的插入，可用于将动态值插入到字符串中：
+
+```scss
+p:before {
+  content: "I ate #{5 + 10} pies!";
+}
+```
+
+将被编译为：
+
+```css
+p:before {
+  content: "I ate 15 pies!"; }
+```
+
+在字符串插入操作中，空值（null values）是按照空字符串进行处理的：
+
+```scss
+$value: null;
+p:before {
+  content: "I ate #{$value} pies!";
+}
+```
+
+将被编译为：
+
+```css
+p:before {
+  content: "I ate  pies!"; }
+```
+
+#### 关于布尔运算（Boolean Operations）
+
 

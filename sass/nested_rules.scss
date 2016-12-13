@@ -1,27 +1,7 @@
-$width-default: 90%;
+$var: -2px;
 
-#main p {   
-    .redbox {
-        background-color: #ff0000;
-        color: #000000;
-        width: $width_default;
-    }
-    
-    color: #00ff00;
-    $width_default: 97% !global;
-    width: $width-default;   
-    
-    .greenbox {
-        background-color: #00ff00;
-        color: #000000;
-        width: $width_default;
+p {
+    font: {
+        size: -$var;
     }
 }
-
-@mixin firefox-message($selector: string) {
-        body.firefox #{$selector}:before {
-            content: "Hi, Firefox users!";
-        }
-}
-
-@include firefox-message(".header");
