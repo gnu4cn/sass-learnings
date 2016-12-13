@@ -962,3 +962,364 @@ $family: unquote("Droid+Sans");
 @import url("http://fonts.googleapis.com/css?family=Droid+Sans");
 ```
 
+### 模板（Partials）
+
+在打算导入某个既有的SCSS或Sass文件，而不想将其编译到某个CSS文件中时，可在该文件的文件名前加上一个下划线。这样做就告诉Sass不要将该文件编译到某个一般CSS文件中。此时可将这些文件以不带下划线的形式，加以导入。
+
+比如，可能有一个`_colors.scss`文件。但并不会创建出`_colors.css`文件，同时可以这样做：
+
+```scss
+@import "colors";
+```
+
+那么`_colors.scss`文件将被导入。
+
+请注意在相同目录下，是不可以同时包含有同样文件名的模板与非模板的。比如`_colors.scss`就不可与`colors.scss`同时存在于同一个目录中。
+
+### 嵌套的`@import`（nested `@import`）
+
+尽管大多数时候在Sass文档文档顶部有着多个`@imports`就很有用了，但在CSS规则及`@media`规则中进行导入也是可行的。与基本的`@import`一样，这样做仍将包含进所`@imported`文件的内容。但所导入的规则，将被嵌套在最初`@import`的同样位置。
+
+比如文件`example.scss`包含以下内容：
+
+```scss
+.example {
+    color: red;
+}
+```
+
+随后：
+
+```scss
+#main {
+    @import "example";
+}
+```
+
+则将被编译为：
+
+```css
+#main .example {
+    color: red;
+}
+```
+
+对于诸如`@mixin`及`@charset`等，只允许在文档的基础级别出现（directives that ）的指令，是不允许在嵌套环境中所导入的文件中的。
+
+在mixins指令或控制指令里，都是不可能嵌套`@import`的。
+
+### `@media`指令
+
+Sass中的`@media`指令与普通CSS中的表现类似，除了有一项额外能力：它们可被嵌套在CSS规则中。在某个`@media`指令出现在某条CSS规则中时，其就会冒到样式表的顶级层面，而将路径上的所有选择器，放入到该规则。这样就令到一些媒体相关样式的添加变得容易起来，无须重复选择器，或是破坏样式表流（This makes it easy to add media-specific styles without having to repeat selectors or break the flow of the stylesheet）。比如:
+
+```scss
+.sidebar {
+  width: 300px;
+  @media screen and (orientation: landscape) {
+    width: 500px;
+  }
+}
+```
+
+将被编译为：
+
+```css
+.sidebar {
+  width: 300px; }
+  @media screen and (orientation: landscape) {
+    .sidebar {
+      width: 500px; } }
+```
+
+同样，`@media`查询也可嵌套在另一媒体查询中。这些查询将使用`and`运算符结合起来。比如：
+
+```scss
+@media screen {
+  .sidebar {
+    @media (orientation: landscape) {
+      width: 500px;
+    }
+  }
+}
+```
+
+将被编译为：
+
+```css
+@media screen and (orientation: landscape) {
+  .sidebar {
+    width: 500px; } }
+```
+
+最后要说的是，`@media`查询可以在名称及特性值等处，包含SassScript表达式（包括变量、函数及运算符）。比如：
+
+```scss
+$media: screen;
+$feature: -webkit-min-device-pixel-ratio;
+$value: 1.5;
+
+@media #{$media} and ($feature: $value) {
+  .sidebar {
+    width: 500px;
+  }
+}
+```
+
+将被编译为：
+
+```css
+@media screen and (-webkit-min-device-pixel-ratio: 1.5) {
+  .sidebar {
+    width: 500px; } }
+```
+
+### `@extend`指令
+
+通常有着这样的情形，那就是在设计某个页面是，一个类有着另一个类的所有样式，同时其还有着一些自身的样式。处理此种情形的最常见做法，就是在HTML中同时使用更通用的类和较特定的类。比如，假设我们有着一个用于一般错误及严重错误的设计。我们可能会这样编写标签：
+
+```html
+<div class="error seriousError">
+  Oh no! You've been hacked!
+</div>
+```
+
+同时有着下面的样式：
+
+```css
+.error {
+  border: 1px #f00;
+  background-color: #fdd;
+}
+.seriousError {
+  border-width: 3px;
+}
+```
+
+然而不幸的是，这样做就意味着我们必须始终记住要将`.error`与`.seriousError`一起使用。这是一种维护的负担，从而导致棘手的问题，同时还在HTML标记中引入了非语义的样式担忧。
+
+`@extend`指令通过告诉Sass一个选择器应继承另一选择器的样式，而避免了这些问题。比如：
+
+```scss
+.error {
+  border: 1px #f00;
+  background-color: #fdd;
+}
+.seriousError {
+  @extend .error;
+  border-width: 3px;
+}
+```
+
+将被编译为：
+
+```css
+.error, .seriousError {
+  border: 1px #f00;
+  background-color: #fdd;
+}
+
+.seriousError {
+  border-width: 3px;
+}
+```
+
+这就意味着所有定义给`.error`的样式，同样应用到了`.seriousError`上，此外还有着`.seriousError`所特有的样式。实际上，带有类`.seriousError`的各个元素，也有着类`.error`。
+
+其他使用了`.error`的规则，在`.seriousError`上也会生效。比如，在有着由hackers所引发的错误样式：
+
+```scss
+.error.intrusion {
+  background-image: url("/image/hacked.png");
+}
+```
+那么`<div class="seriousError intrusion">`标签，将同样有着背景`hacked.png`。
+
+#### `@extend`原理
+
+`@extend`是通过将所扩展的选择器（也就是这里的`.seriousError`），插入到样式表中被扩展选择器（也就是这里的`.error`）出现的任意位置，来工作的。因此上面的示例：
+
+```scss
+.error {
+  border: 1px #f00;
+  background-color: #fdd;
+}
+.error.intrusion {
+  background-image: url("/image/hacked.png");
+}
+.seriousError {
+  @extend .error;
+  border-width: 3px;
+}
+```
+
+就被编译为：
+
+```css
+.error, .seriousError {
+  border: 1px #f00;
+  background-color: #fdd; }
+
+.error.intrusion, .seriousError.intrusion {
+  background-image: url("/image/hacked.png"); }
+
+.seriousError {
+  border-width: 3px; }
+```
+
+在合并选择器时，`@extend`足够聪明，可以避免不必要的重复，因此像是`.seriousError.seriousError`这样的选择器，就被翻译为了`.seriousError`。此外，它是不会产生出那些无法匹配任何东西的选择器的，比如`#main#footer`。
+
+#### 对复杂选择器的扩展（Extending Complex Selectors）
+
+可被扩展的选择器，并非类一种。任何仅涉及单一元素的选择器，都可被扩展，比如`.special.cool`、`a:hover`，或者`a.user[href^="http://"]`等。比如：
+
+```scss
+.hoverlink {
+  @extend a:hover;
+}
+```
+
+与类一样，这就意味着所有定义给`a:hover`的样式，都将被应用到`.hoverlink`。比如：
+
+```scss
+.hoverlink {
+  @extend a:hover;
+}
+a:hover {
+  text-decoration: underline;
+}
+```
+
+将被编译为：
+
+```css
+a:hover, .hoverlink {
+  text-decoration: underline; }
+```
+
+而与上面的`.error.intrusion`一样，所有使用到`a:hover`的规则，同样会在`.hoverlink`上生效，就算这些规则有着其它选择器。比如：
+
+```scss
+.hoverlink {
+  @extend a:hover;
+}
+.comment a.user:hover {
+  font-weight: bold;
+}
+```
+
+将被编译为：
+
+```css
+.comment a.user:hover, .comment .user.hoverlink {
+  font-weight: bold; }
+```
+
+### 多个扩展（Multiple Extends）
+
+单个选择器，可对多个选择器进行扩展。这就意味着该选择器将继承所有被扩展选择器的样式。比如：
+
+```scss
+.error {
+  border: 1px #f00;
+  background-color: #fdd;
+}
+.attention {
+  font-size: 3em;
+  background-color: #ff0;
+}
+.seriousError {
+  @extend .error;
+  @extend .attention;
+  border-width: 3px;
+}
+```
+
+将被编译为：
+
+```css
+.error, .seriousError {
+  border: 1px #f00;
+  background-color: #fdd; }
+
+.attention, .seriousError {
+  font-size: 3em;
+  background-color: #ff0; }
+
+.seriousError {
+  border-width: 3px; }
+```
+
+实际上，每个带有`.seriousError`类的元素，同样有着类`.error` *与*类`.attention`。因此，文档后面所定义的样式，将采取以下的优先级：`.seriousError`有着背景颜色`#ff0`，而不是`#fdd`，因为`.attention`的定义，晚于`.error`。
+
+多项扩展的编写，还可使用逗号分隔的选择器清单形式。比如`@extend .error, .attention`，这与`@extend .error; @extend .attention;`是一样的。
+
+#### 链接的扩展（Chaining Extends）
+
+一个选择器对另一选择器进行扩展，而另一选择器有扩展了其它选择器，这样做是可能的。比如：
+
+```scss
+.error {
+  border: 1px #f00;
+  background-color: #fdd;
+}
+.seriousError {
+  @extend .error;
+  border-width: 3px;
+}
+.criticalError {
+  @extend .seriousError;
+  position: fixed;
+  top: 10%;
+  bottom: 10%;
+  left: 10%;
+  right: 10%;
+}
+```
+
+现在带有类`.seriousError`的所有标记，都有着类`.error`，同时所有带有类`.criticalError`的所有标签，都有着类`.seriousError`与类`.error`了。其将被编译为：
+
+```css
+.error, .seriousError, .criticalError {
+  border: 1px #f00;
+  background-color: #fdd; }
+
+.seriousError, .criticalError {
+  border-width: 3px; }
+
+.criticalError {
+  position: fixed;
+  top: 10%;
+  bottom: 10%;
+  left: 10%;
+  right: 10%; }
+```
+
+#### 选择器序列（Selector Sequences）
+
+那些选择器序列，比如`.foo .bar`或者`.foo + .bar`，当前还无法被扩展。但对于那些被嵌套的选择器自身，使用`@extend`指令也是可能的。比如：
+
+```scss
+#fake-links .link {
+  @extend a;
+}
+
+a {
+  color: blue;
+  &:hover {
+    text-decoration: underline;
+  }
+}
+```
+
+将被编译为：
+
+```css
+a, #fake-links .link {
+  color: blue; }
+  a:hover, #fake-links .link:hover {
+    text-decoration: underline; }
+```
+
+##### 合并选择器序列（Merging Selector Sequences）
+
+
