@@ -1,7 +1,15 @@
 $var: -2px;
 
 p {
+    width: (1em + 2em) * 3;
     font: {
         size: -$var;
     }
 }
+
+.foo.bar .baz.bang, .bip.qux {
+    &-demo: {
+        font:{
+            size: big;
+        }};
+    }

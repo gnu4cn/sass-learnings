@@ -730,4 +730,107 @@ p:before {
 
 #### 关于布尔运算（Boolean Operations）
 
+SassScript支持布尔值的与（`and`）、或（`or`）及非（`not`）运算。
 
+#### 关于清单运算（List Operations）
+
+清单不支持所有特殊运算。但可使用[清单函数](http://sass-lang.com/documentation/Sass/Script/Functions.html#list-functions)对其进行操作。
+
+### 关于括号（Parentheses）
+
+括号可用于对运算的顺序施加影响：
+
+```scss
+p {
+  width: 1em + (2em * 3);
+}
+```
+
+将被编译为：
+
+```css
+p {
+  width: 7em; }
+```
+
+## SassScript的函数（Functions）
+
+SassScript定义了一些有用的函数，可使用一般CSS函数语法加以调用：
+
+```scss
+p {
+  color: hsl(0, 100%, 50%);
+}
+```
+
+将被编译为：
+
+```css
+p {
+  color: #ff0000; }
+```
+
+请查看[此页面](http://sass-lang.com/documentation/Sass/Script/Functions.html)以了解这些可用的函数。
+
+### 关键字参数（Keyword Arguments）
+
+可以显式的关键字参数，对Sass函数进行调用。上面的例子也可写为：
+
+```scss
+p {
+  color: hsl($hue: 0, $saturation: 100%, $lightness: 50%);
+}
+```
+
+虽然这样做不那么简洁，但可令到样式表更为易读了。同时其也允许函数以更多灵活接口呈现，在不增加调用难度的情况下，可提供许多的参数。
+
+命名参数（named arguments）可以任意顺序进行传递，同时带有默认值的参数可被省略。因为命名参数就是变量名称，所以下划线（`_`）与短横线（`-`）是可以互换使用的。
+
+请参阅[Sass::Script:Functions](http://sass-lang.com/documentation/Sass/Script/Functions.html), 以了解Sass函数的完整清单及各自的参数名称，以及有关使用Ruby编程语言定义函数的教程。
+
+### 关于插值操作（Interpolation: `#{}`）
+
+使用了插值语法`#{}`，就也可在选择器（selectors）和属性名称中使用SassScript的变量了：
+
+```scss
+$name: foo;
+$attr: border;
+p.#{$name} {
+  #{$attr}-color: blue;
+}
+```
+
+将被编译为：
+
+```css
+p.foo {
+  border-color: blue; }
+```
+
+同时，使用`#{}`将SassScript放入到属性值中也是可能的。在大多数情况下，这样做并不比使用某个变量有什么好处，但使用`#{}`后就意味着其附近的所有运算，都将以普通CSS加以对待。比如：
+
+```scss
+p {
+  $font-size: 12px;
+  $line-height: 30px;
+  font: #{$font-size}/#{$line-height};
+}
+```
+
+将被编译为：
+
+```css
+p {
+  font: 12px/30px; }
+```
+
+### SassScript中的`&`
+
+就跟在选择器中用到的那样，SassScript中的`&`是对当前父选择器的引用。它是一个逗号分隔的多个空格分隔清单的清单。比如：
+
+```scss
+.foo.bar .baz.bang, .bip.qux {
+  $selector: &;
+}
+
+此时`$selector`的值为`((".foo.bar" ".baz.bang"), ".bip.qux")`。
