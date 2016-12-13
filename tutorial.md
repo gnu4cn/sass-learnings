@@ -443,4 +443,91 @@ body.firefox .header:before {
 
 #### 字典（Maps）
 
+字典表示键与数值之间的某种联系，这里的键用于查找数值。Maps令到将数值收集到命名的分组组，并动态地访问这些分组变得容易。尽管它们在语法上与媒体查询表达式类似，但在CSS中它们并没有直接的并排。
+
+```scss
+$map: (key1: value1, key2: value2, key3: value3);
+```
+
+与列表不同，maps必须始终有括号包围，同时必须是逗号分隔的。maps中的键与数值，都可以是任何的Sass对象。map中与给定键相关联的值仅能是一个（不过该值可以是一个清单）。但一个值可以与多个键相关联。
+
+与清单类似，maps在大多数情况下也是使用[SassScript函数](http://sass-lang.com/documentation/Sass/Script/Functions.html#map-functions)来进行操作的。`map-get`函数在某个map中查找数值，而`map-merge`函数则将一些值加入到某个map中。[指令`@each`](http://sass-lang.com/documentation/file.SASS_REFERENCE.html#each-multi-assign)可用于往某个map中的各个键/值对加上样式。map中的键/值对顺序，始终与该map创建时保持一致。
+
+那些可以使用清单的地方，就都可以使用maps。在被某个清单函数使用使用到时，map就被当成键/值对清单加以对待。比如，`(key1: value1, key2: value2)`将被清单函数作为嵌套清单`key1 value1, key2 value2`加以处理。但清单是不能作为maps加以对待的，因为有着空清单的例外。`()`同时表示了一个没有键/值对的map，以及没有元素的清单。
+
+请注意map中的键可以是所有种类的Sass数据类型（甚至是另一map）, 且一个map的声明中，是允许执行任意SassScript表达式来得到键的。
+
+Maps是不能转换到普通CSS的。使用map作为变量的值，或是作为某个CSS函数的参数，都将引发错误。可以使用`inspect($value)`函数，来生成可用于对maps进行调试的输出字串。
+
+#### 颜色（Colors）
+
+所有CSS颜色表达式，都将返回一个SassScript颜色数值。这包含了[大量有名称的颜色](https://github.com/nex3/sass/blob/stable/lib/sass/script/value/color.rb#L28-L180), 这些颜色名称与未加引号的字符串是没有分别的。
+
+在压缩输出模式中，Sass将输出颜色的最短CSS表示方式。比如，`#FF0000`在压缩模式下将输出为`red`, 但`blanchedalmond`将输出为`#FFEBCD`。
+
+与有名称颜色相关的常见问题，就是Sass优先使用手工输入的颜色模式进行输出，而不是其它输出模式，在压缩输出模式下，插入到选择器中的某种颜色，将成为无效语法。为避免这个问题，加入命名的颜色将用于某个选择器的构建，那么请一直将该命名的颜色用引号括起来。
+
+### 关于Sass的运算（Operations）
+
+所有变量类型都支持相等运算（`==` 及 `!=` ）。此外，每种变量类型又有着其自身所特殊支持的运算。
+
+#### 数字运算（Number Operations）
+
+SassScrit支持那些关于数字方面的标准算术运算（加法`+`、减法`-`、乘法`*`、除法`/`，以及求模`%`）。Sass数学函数在算术运算过程中将保留单位（preserve units）。这就是说，跟真实生活中一样，不可以对带有不相容单位的数字进行运算（比如把带有`px`和`em`两个不同单位的数字相加），同时两个有着相同单位的数字相乘，将产生平方单位（`10px * 10px == 100 px*px`）。**请注意** `px * px`并不是一个有效的CSS单位，而在CSS中使用无效单位时，Sass将给出一个错误。
+
+对于数字，还支持关系运算符（relational operators，`<`、`>`、`<=`、`>=`），而对于所有类型变量，相等运算符（equality operators, `==`、`!=`），都是支持的。
+
+##### 关于除法运算与`/`
+
+CSS允许`/`出现在属性值中，作为一种分隔数值的方式。而因为SassScript是CSS属性语法的一个扩展，所以其必须支持这种方式，而又同时允许`/`用于除法运算。这就意味着在默认情况下，如果SassScript中的两个数字被`/`分开，那么它们就会以这种方式出现在CSS输出中。
+
+不过，在下面三种情况下，`/`将被解释为除法运算。这三种方式涵盖了实际使用除法的大多数场景。它们是：
+
+1. 在`/`两边的数值之一是存储在变量、或为函数的返回值时;
+2. 在`/`两边的数值被括号括起来时，除了这些括号处于某个清单之外，而数值位处清单之内的情况;
+3. 在`/`两边的数值作为另一个算术表达式的一部分使用时。
+
+比如：
+
+```scss
+p {
+  font: 10px/8px;             // Plain CSS, no division
+  $width: 1000px;
+  width: $width/2;            // Uses a variable, does division
+  width: round(1.5)/2;        // Uses a function, does division
+  height: (500px/2);          // Uses parentheses, does division
+  margin-left: 5px + 8px/2px; // Uses +, does division
+  font: (italic bold 10px/8px); // In a list, parentheses don't count
+}
+```
+
+将被编译为：
+
+```css
+p {
+  font: 10px/8px;
+  width: 500px;
+  height: 250px;
+  margin-left: 9px; }
+```
+
+而如要与普通CSS的`/`一同使用变量，就可以使用`#{}`来将其插入。比如：
+
+```scss
+p {
+  $font-size: 12px;
+  $line-height: 30px;
+  font: #{$font-size}/#{$line-height};
+}
+```
+
+将被编译为：
+
+```css
+p {
+  font: 12px/30px; }
+```
+
+##### 关于减法、负数与`-`（subtraction, Negative Numbers, and `-`）
+
 
