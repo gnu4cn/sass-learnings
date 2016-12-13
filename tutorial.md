@@ -834,7 +834,7 @@ p {
 }
 ```
 
-此时`$selector`的值为`((".foo.bar" ".baz.bang"), ".bip.qux")。这里引用该复合选择器，目的是表明它们是一些字符串，但在现实中，它们应是不带引号的。就算父选择器不包含逗号或空格，`&`仍将始终有着两个级别的嵌套，因此`&`可被一致性地访问到。
+此时`$selector`的值为`((".foo.bar" ".baz.bang"), ".bip.qux")`。这里引用该复合选择器，目的是表明它们是一些字符串，但在现实中，它们应是不带引号的。就算父选择器不包含逗号或空格，`&`仍将始终有着两个级别的嵌套，因此`&`可被一致性地访问到。
 
 在没有父选择器的情况下，`&`的值将为空。这就意味着可在mixin中使用它来探测是否存在一个父选择器：
 
@@ -851,3 +851,114 @@ p {
   }
 }
 ```
+
+### 关于变量默认值：`!default`
+
+如已在值的末尾，使用`!default`标志为某个变量进行了赋值，就不能再对该变量进行赋值操作了。这就意味着当该变量已被赋值后，就再也不会再度被赋值了，而假如其仍没有一个值，将被赋予一个。
+
+```scss
+$content: "First content";
+$content: "Second content?" !default;
+$new_content: "First time reference" !default;
+
+#main {
+  content: $content;
+  new-content: $new_content;
+}
+```
+
+将被编译为：
+
+```css
+#main {
+  content: "First content";
+  new-content: "First time reference"; }
+```
+
+带有`null`值的变量，是作为`!default`所为赋值的变量加以对待的：
+
+```scss
+$content: null;
+$content: "Non-null content" !default;
+
+#main {
+  content: $content;
+}
+```
+
+将被编译为：
+
+```css
+#main {
+  content: "Non-null content"; }
+```
+
+## `@`-规则与指令（`@`-Rules and Directives）
+
+Sass支持所有CSS3的`@`-规则，此外还支持一些Sass特定的额外规则，这些额外规则被成为“指令”。这些指令在Sass中有着不同影响，下面将对其详细说明。也请参阅[控制指令](http://sass-lang.com/documentation/file.SASS_REFERENCE.html#control_directives)与[mixin指令](http://sass-lang.com/documentation/file.SASS_REFERENCE.html#mixins)。
+
+### `@import`指令
+
+Sass对CSS的`@import`指令进行了扩展，以实现SCSS及Sass文件的导入。导入的所有SCSS与Sass文件，都将被合并到一个单一的CSS输出文件。此外，在所导入的文件中定义的全部变量或mixins, 都可在主文件中加以使用。
+
+Sass将在当前目录及在Rack、Rails或Merb下的Sass文件目录，查找其他Sass文件。其它搜索目录可使用Sass的`:load_paths`选项，或者命令行的`--load-path`选项加以指定。
+
+`@import`取得一个文件名来进行导入操作。默认其会查找一个Sass文件以直接导入，但在以下几张情况下，将编译为CSS的`@import`规则：
+
+- 在文件扩展名是`.css`时
+- 在文件名以`http://`开头时
+- 文件名是一个`url()`时
+- `@import`有着任意的媒体查询时
+
+而在上述条件都不满足，且扩展名是`.scss`或`.sass`时，该命名的Sass或SCSS文件将被导入。而在没有扩展名时，Sass将尝试找到以改名字为文件名、以`.scss`或`.sass`作为扩展的文件，并加以导入。
+
+比如：
+
+```scss
+@import "foo.scss"
+```
+
+或者
+
+```scss
+@import "foo"
+```
+
+两种写法都将把文件`foo.scss`加以导入，而下面这些
+
+```scss
+@import "foo.css";
+@import "foo" screen;
+@import "http://foo.com/bar";
+@import url(foo);
+```
+
+则将被编译为：
+
+```css
+@import "foo.css";
+@import "foo" screen;
+@import "http://foo.com/bar";
+@import url(foo);
+```
+
+在一个`@import`导入多个文件，也是可行的。比如：
+
+```scss
+@import "rounded-corners", "text-shadow";
+```
+
+将同时导入`rounded-corners`与`text-shadow`两个文件。
+
+导入可包含`#{}`插值操作，但有着一些限制。基于某个变量来动态地导入某个Sass文件，就是不可行的; 所以插值操作仅适用于CSS的导入。那么插值操作就只能与`url()`的导入一起使用了。比如：
+
+```scss
+$family: unquote("Droid+Sans");
+@import url("http://fonts.googleapis.com/css?family=#{$family}");
+```
+将被编译为：
+
+```css
+@import url("http://fonts.googleapis.com/css?family=Droid+Sans");
+```
+
