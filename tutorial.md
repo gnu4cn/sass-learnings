@@ -1322,4 +1322,840 @@ a, #fake-links .link {
 
 ##### 合并选择器序列（Merging Selector Sequences）
 
+某个选择器序列对另一位处其它序列的选择器进行扩展，这时有发生。此时，两个序列需要被合并起来。比如：
 
+```scss
+#admin .tabbar a {
+  font-weight: bold;
+}
+#demo .overview .fakelink {
+  @extend a;
+}
+```
+
+这里尽管在技术上要生成所有可能匹配到两个序列的所有选择器是可行的，但这样做将导致样式表过大。就上面的这个简单示例来说，就需要10个的选择器。取而代之的是，Sass将仅生成那些看起来有用的选择器。
+
+在没有相同选择器的两个序列被合并时，将生成这两个心的选择器：一个是头一个序列在第二个之前的，一个是第二个序列在头一个之前的。比如：
+
+```scss
+#admin .tabbar a {
+  font-weight: bold;
+}
+#demo .overview .fakelink {
+  @extend a;
+}
+```
+
+将被编译为：
+
+```css
+#admin .tabbar a,
+#admin .tabbar #demo .overview .fakelink,
+#demo .overview #admin .tabbar .fakelink {
+  font-weight: bold; }
+```
+而如果两个序列有着某些相同的选择器，那么邪恶这些相同的选择器将被合并掉，而仅有不同的（在存在不同选择器的情况下）会被调换位置。在本示例中，两个序列都包含了id`#admin`, 因此最终选择器将合并这两个ids:
+
+```scss
+#admin .tabbar a {
+  font-weight: bold;
+}
+#admin .overview .fakelink {
+  @extend a;
+}
+```
+
+将被编译为：
+
+```css
+#admin .tabbar a,
+#admin .tabbar .overview .fakelink,
+#admin .overview .tabbar .fakelink {
+  font-weight: bold; }
+```
+
+#### `@extend`-Only 选择器
+
+某些时候会打算编写一些只用于被扩展，而不会直接在HTML中使用的样式。这样做在编写一个Sass库，那里会将一些样式提供给用户来在需要时`@extend`，不需要时可以忽略的时候，就特别有用。
+
+如以通常的类来编写，就会在生成样式表时，导致大量额外的CSS，还会造成与其它正在HTML中使用着的类发生冲突的风险。这就是Sass支持“占位符选择器”特性的原因（比如`%foo`）。
+
+占位符选择器看起来就像是类及id选择器，只是`#`或`.`被`%`取代了。在所有可以使用类及id的地方，都可以使用占位符选择器，同时它们自身将阻止规则被渲染到CSS。比如：
+
+```scss
+// This ruleset won't be rendered on its own.
+#context a%extreme {
+  color: blue;
+  font-weight: bold;
+  font-size: 2em;
+}
+```
+
+但是，与类和ids选择器一样，占位符选择器是可以被扩展的。那些被扩展的选择器将被生成，但基本占位符选择器则不会。比如：
+
+```scss
+.notice {
+  @extend %extreme;
+}
+```
+
+将被编译为：
+
+```css
+#context a.notice {
+  color: blue;
+  font-weight: bold;
+  font-size: 2em; }
+```
+
+#### `!optional` 标记
+
+通常在扩展某个选择器时，如有错误发生，那么`@extend`就不会生效。比如，在编写了一个`a.important {@extend .notice}`时，如没有选择器包含有`.notice`，就会出现错误。同时如果仅有的包含了`.notice`的选择器为`h1.notice`时，也将出现错误，因为`h1`是与`a`冲突的，且因此不会生成新的选择器。
+
+因此一些时候，想要某个`@extend`并不产生任何的新选择器。要实现这个目的，秩序将`!optional`标志，添加在该选择器后面。比如：
+
+```scss
+a.important {
+  @extend .notice !optional;
+}
+```
+
+#### 指令中的`@extend`
+
+在诸如`@media`等的指令中，`@extend`的使用有着一些限制。通过到处复制样式，Sass是无法在不建立庞大样式表的情况下，实现将`@media`代码块外部的CSS规则，应用到其内部的选择器上的。这就意味着要在`@media`内部使用`@extend`（或别的CSS指令）的话，只能对出现在同样指令代码块内部的那些选择器进行扩展。
+
+比如，下面的代码可以工作：
+
+```scss
+@media print {
+  .error {
+    border: 1px #f00;
+    background-color: #fdd;
+  }
+  .seriousError {
+    @extend .error;
+    border-width: 3px;
+  }
+}
+```
+
+不过下面这个就是错误的：
+
+```scss
+
+.error {
+  border: 1px #f00;
+  background-color: #fdd;
+}
+
+@media print {
+  .seriousError {
+    // INVALID EXTEND: .error is used outside of the "@media print" directive
+    @extend .error;
+    border-width: 3px;
+  }
+}
+```
+
+我们希望未来浏览器能够原生支持`@extend`指令，那样允许其在`@media`及其它指令内部可以使用。
+
+### `@at-root`指令
+
+`@at-root`指令将引发一条或多条规则在文档根处得以生成，而不是嵌套在其父选择器之下。它既可以与某个单一的行内选择器使用：
+
+```scss
+.parent {
+  ...
+  @at-root .child { ... }
+}
+```
+
+将被编译为：
+
+```css
+.parent { ... }
+.child { ... }
+```
+
+也可以将其与一个包含了多个选择器的代码块一起使用：
+
+```scss
+.parent {
+  ...
+  @at-root {
+    .child1 { ... }
+    .child2 { ... }
+  }
+  .step-child { ... }
+}
+```
+
+将被编译为：
+
+```css
+.parent { ... }
+.child1 { ... }
+.child2 { ... }
+.parent .step-child { ... }
+```
+
+##### `@at-root (without: ...)`以及`@at-root (with: ...)`
+
+默认情况下，`@at-root`只会排除选择器。但使用`@at-root`来将嵌套的诸如`@media`这样的指令，迁移到外部，也是可能的。比如：
+
+```scss
+@media print {
+  .page {
+    width: 8in;
+    @at-root (without: media) {
+      color: red;
+    }
+  }
+}
+```
+
+将被编译为：
+
+```css
+@media print {
+  .page {
+    width: 8in;
+  }
+}
+.page {
+  color: red;
+}
+```
+
+那么就可以使用`@at-root (without: ...)`，类从任何指令进行迁移到外部。也可以与由空格分隔的多条指令一起使用：`@at-root (without: media supports)`， 而同时从`@media`及`@supports`查询同时移到外部。
+
+可将两个特殊值传递给`@at-root`指令。`rule`是指一般CSS规则; `@at-root (without: rule)` 与没有查询的`@at-root`相同。而`@at-root (without: all)`的意思就是这些样式将从*所有*指令和CSS规则从迁移到外部。
+
+而在想要指定哪些指令或规则要包含进去，而不是列出那些将要排除时，就要使用`with`来替代`without`了。比如`@at-root (with: rule)`将从所有指令移至外部，但仍将保留所有CSS样式。
+
+### `@debug`指令
+
+`@debug`指令会将某个SassScript表达式的值，打印到标准错误输出流。该指令对于调试那些有着复杂SassScript的Sass文件是有用的。比如：
+
+```scss
+@debug 10em + 12em;
+```
+
+的输出为：
+
+```bash
+Line 1 DEBUG: 22em
+```
+
+### `@warn`指令
+
+`@warn`指令将某个SassScript表达式的值打印到错误输出流。对于那些需要向用户给出用法或从小的mixin用法错误恢复的警告信息的库来说，是有用的。`@warn`与`@debug`的主要区别在于：
+
+1. 可使用命令行选项`--quiet`，或Sass的选项`:quiet`，来关闭警告信息。
+2. 与警告消息一道，将打印出一条样式表的追踪信息（a stylesheet trace），因此被警告的用户可以看到他们的样式在何处造成了警告。
+
+用例：
+
+```scss
+@mixin adjust-location($x, $y) {
+  @if unitless($x) {
+    @warn "Assuming #{$x} to be in pixels";
+    $x: 1px * $x;
+  }
+  @if unitless($y) {
+    @warn "Assuming #{$y} to be in pixels";
+    $y: 1px * $y;
+  }
+  position: relative; left: $x; top: $y;
+}
+```
+
+### `@error`指令
+
+`@error`指令将某个SassScript表达式的值，作为致命错误，并包含一个良好形式的栈追踪信息，加以抛出。对于验证mixins与函数的参数，其是有用的。比如：
+
+```scss
+@mixin adjust-location($x, $y) {
+  @if unitless($x) {
+    @error "$x may not be unitless, was #{$x}.";
+  }
+  @if unitless($y) {
+    @error "$y may not be unitless, was #{$y}.";
+  }
+  position: relative; left: $x; top: $y;
+}
+```
+
+当前尚无捕获错误的方式。
+
+## 控制指令与表达式（Control Directives & Expressions）
+
+SassScript支持一些基本的控制指令及表达式，用于在满足某些条件下样式的包含，或者多次包含带有变化的相同样式。
+
+**注意**：控制指令是一类高级特性，且在日常样式设计中并不常用。控制指令存在的主要用途实在mixins中，特别是那些作为像是[Compass](http://compass-style.org/)的库的组成部分的mixins中，因此它们要求实质上的灵活性。
+
+### `if()`
+
+该内建的`if()`函数，允许按照某个条件转移，而返回两个可能结果之一。其可用在任意的脚本上下文中。`if`函数仅执行其将返回的那个参数 -- 这就允许引用到那些可能没有被定义的变量，或者可能导致错误的运算（比如除以零）。
+
+```scss
+if(true, 1px, 2px) => 1px
+if(false, 1px, 2px) => 2px
+```
+
+### `@if`
+
+`@if`指令将取一个SassScript表达式，并在表达式返回除开`false`或`null`时，使用嵌套在表达式下的那些样式：
+
+```scss
+p {
+  @if 1 + 1 == 2 { border: 1px solid;  }
+  @if 5 < 3      { border: 2px dotted; }
+  @if null       { border: 3px double; }
+}
+```
+
+将被编译为：
+
+```css
+p {
+  border: 1px solid; }
+```
+
+`@if`语句之后可跟随多个的`@else if`语句，及一个`@else`语句。在`@if`语句失效是，将依序尝试`@else if`语句，直到某个成功，或者到达`@else`。比如：
+
+```scss
+$type: monster;
+p {
+  @if $type == ocean {
+    color: blue;
+  } @else if $type == matador {
+    color: red;
+  } @else if $type == monster {
+    color: green;
+  } @else {
+    color: black;
+  }
+}
+```
+
+将被编译为：
+
+```css
+p {
+  color: green; }
+```
+
+### `@for`
+
+`@for`指令将重复输出一套的样式。对于每次重复，将用到一个计数器变量，来调整输出。该指令有着两个形式：`@for $var from <start> through <end>` 及 `@for $var from <start> to <end>`。注意关键字`through`与`to`的区别。`$var`可以是任何变量名称，像是`$i`; 而`<start>`与`<end>`则是应返回整数值的SassScript表达式。在`<start>`大于`<end>`时，计数器将减小，而非增大。
+
+`@for`语句将设置`$var`为该指定范围的各个连续数字，同时每次将使用`$var`的值来输出所嵌套的那些样式。对于`from ... through`这种形式，该范围*包含*了`<start>`与`<end>`两个值，而对于`from ... to`形式，就不包含`<end>`数值。下面是使用`<through>`的情形：
+
+```scss
+@for $i from 1 through 3 {
+  .item-#{$i} { width: 2em * $i; }
+}
+```
+
+将被编译为：
+
+```css
+.item-1 {
+  width: 2em; }
+.item-2 {
+  width: 4em; }
+.item-3 {
+  width: 6em; }
+```
+
+### `@each`
+
+`@each`指令通常有着`@each $var in <list or map>`这种形式。`$var` 可以是任何的变量名称，比如`$length`或者`$name`， 同时`<list or map>`则是一个将返回清单或map的SassScript表达式。
+
+`@each`指令将`$var`设置为那个清单或map中的各个条目，随后使用`$var`的值来输出其所包含的那些样式。比如：
+
+```scss
+@each $animal in puma, sea-slug, egret, salamander {
+  .#{$animal}-icon {
+    background-image: url('/images/#{$animal}.png');
+  }
+}
+```
+
+将被编译为：
+
+```css
+.puma-icon {
+  background-image: url('/images/puma.png'); }
+.sea-slug-icon {
+  background-image: url('/images/sea-slug.png'); }
+.egret-icon {
+  background-image: url('/images/egret.png'); }
+.salamander-icon {
+  background-image: url('/images/salamander.png'); }
+```
+
+#### 多项赋值（Multiple Assignment）
+
+`@each`指令还可以使用多个变量，比如在`@each $var1, $var2, ... in <list>`中。在`<list>`是一个清单的清单时，子清单中的各个元素，就被赋给相应的变量。比如：
+
+```scss
+@each $animal, $color, $cursor in (puma, black, default),
+                                  (sea-slug, blue, pointer),
+                                  (egret, white, move) {
+  .#{$animal}-icon {
+    background-image: url('/images/#{$animal}.png');
+    border: 2px solid $color;
+    cursor: $cursor;
+  }
+}
+```
+
+将被编译为：
+
+```css
+.puma-icon {
+  background-image: url('/images/puma.png');
+  border: 2px solid black;
+  cursor: default; }
+.sea-slug-icon {
+  background-image: url('/images/sea-slug.png');
+  border: 2px solid blue;
+  cursor: pointer; }
+.egret-icon {
+  background-image: url('/images/egret.png');
+  border: 2px solid white;
+  cursor: move; }
+```
+
+而因为map是被作为键值对加以对待的，所以多项赋值对它们也是可用的。比如：
+
+```scss
+@each $header, $size in (h1: 2em, h2: 1.5em, h3: 1.2em) {
+  #{$header} {
+    font-size: $size;
+  }
+}
+```
+
+将被编译为：
+
+```css
+h1 {
+  font-size: 2em; }
+h2 {
+  font-size: 1.5em; }
+h3 {
+  font-size: 1.2em; }
+```
+
+### `@while`指令
+
+`@while`指令将取一个SassScript表达式，并在该语句执行到`false`之前，重复地输出所嵌套的那些样式。此指令可用于实现比起`@for`语句所能完成的更为复杂的循环，尽管复杂循环在极少数情况下是必需的。比如：
+
+```scss
+$i: 6;
+@while $i > 0 {
+  .item-#{$i} { width: 2em * $i; }
+  $i: $i - 2;
+}
+```
+
+将被编译为：
+
+```css
+.item-6 {
+  width: 12em; }
+
+.item-4 {
+  width: 8em; }
+
+.item-2 {
+  width: 4em; }
+```
+
+## Mixin 指令
+
+Sass的mixin特性，允许在无需求助于像是`.float-left`这样的非语义类的情况下，就可以定义出一些可在整个样式表中重用的样式。这些mixins中同样可以包含完整的CSS规则，以及所有可以出现在某个Sass文档中的其它任何内容。它们甚至可以带有参数，从而允许在使用少数几个mixins的情况下，就可以产生出丰富的样式。
+
+### 使用`@mixin`来定义一个mixin
+
+使用`@mixin`指令，就可以定义mixins。指令后跟随的是要定义mixin的名称，以及可选的[参数](http://sass-lang.com/documentation/file.SASS_REFERENCE.html#mixin-arguments), 还有就是包含了该mixin内容的代码块。比如，`large-text`这个mixin的定义：
+
+```scss
+@mixin large-text {
+  font: {
+    family: Arial;
+    size: 20px;
+    weight: bold;
+  }
+  color: #ff0000;
+}
+```
+
+在mixin中也可以包含选择器，一般是与一些属性混合在一起。甚至这些选择器还可以包含[父参考](http://sass-lang.com/documentation/file.SASS_REFERENCE.html#referencing_parent_selectors_)。比如：
+
+```scss
+@mixin clearfix {
+  display: inline-block;
+  &:after {
+    content: ".";
+    display: block;
+    height: 0;
+    clear: both;
+    visibility: hidden;
+  }
+  * html & { height: 1px }
+}
+```
+
+因为历史原因，mixin的名称（以及所有其它Sass标识符）可以将下划线与短横线互换使用。比如，在定义了一个名为`add-column`的mixin后，可以`add_column`将其加以包含，相反也行。
+
+### 使用`@include`来包含一个mixin
+
+在Sass文档中，是通过使用`@include`指令来包含这些mixins的。该指令将取某个mixin的名称，并将[一些可选的参数传递给该mixin](http://sass-lang.com/documentation/file.SASS_REFERENCE.html#mixin-arguments), 进而将那个mixin中所定义的一些规则，包含到当前规则中。比如：
+
+```scss
+.page-title {
+  @include large-text;
+  padding: 4px;
+  margin-top: 10px;
+}
+```
+
+将被编译为：
+
+```css
+.page-title {
+  font-family: Arial;
+  font-size: 20px;
+  font-weight: bold;
+  color: #ff0000;
+  padding: 4px;
+  margin-top: 10px; }
+```
+
+在mixins没有直接定义出任何熟悉，或使用到任何的父引用时，也可在所有规则之外对其进行包含（也就是在文档的根处）。比如：
+
+```scss
+@mixin silly-links {
+  a {
+    color: blue;
+    background-color: red;
+  }
+}
+
+@include silly-links;
+```
+
+将被编译为：
+
+```css
+a {
+  color: blue;
+  background-color: red; }
+```
+
+还可以在mixin的定义中，包含其它mixins。比如：
+
+```scss
+@mixin compound {
+  @include highlighted-background;
+  @include header-text;
+}
+
+@mixin highlighted-background { background-color: #fc0; }
+@mixin header-text { font-size: 20px; }
+```
+
+甚至mixins还可以包含本身。这在早于3.3版本的Sass中有所不同，早于3.3的版本中，mixin的递归是禁止的。
+
+那些只定义了后代选择器的mixins，可在文档的最顶级安全地加以混合（Mixins that only define descendent selectors can be safely mixed into the top most level of a document）。
+
+### 关于mixins的参数
+
+可将SassScript的变量作为mixins的参数，这些参数是在mixin被包含的的时候提供，并在mixin被包含时给出，从而在mixin内部作为变量可用。
+
+在定义某个mixin时，参数是作为由逗号分隔的变量名称编写，放入到位于mixin名称后面的括号里。随后在包含该mixin时，便可一同样方式将一些值加以传入。比如：
+
+```scss
+@mixin sexy-border($color, $width) {
+  border: {
+    color: $color;
+    width: $width;
+    style: dashed;
+  }
+}
+
+p { @include sexy-border(blue, 1in); }
+```
+
+将被编译为：
+
+```css
+p {
+  border-color: blue;
+  border-width: 1in;
+  border-style: dashed; }
+```
+
+使用一般变量设置语法，还可以为mixins指定它们参数的默认值。那么在该mixin被包含时，如没有传入那个参数，则将使用默认值。比如：
+
+```scss
+@mixin sexy-border($color, $width: 1in) {
+  border: {
+    color: $color;
+    width: $width;
+    style: dashed;
+  }
+}
+p { @include sexy-border(blue); }
+h1 { @include sexy-border(blue, 2in); }
+```
+
+将被编译为：
+
+```css
+p {
+  border-color: blue;
+  border-width: 1in;
+  border-style: dashed; }
+
+h1 {
+  border-color: blue;
+  border-width: 2in;
+  border-style: dashed; }
+```
+
+#### 关键字参数（Keyword Arguments）
+
+可使用显式的关键字参数，来包含mixins。比如，上面的示例可写作：
+
+```scss
+p { @include sexy-border($color: blue); }
+h1 { @include sexy-border($color: blue, $width: 2in); }
+```
+
+虽然这样做不那么简洁，但其可令到样式表更为易读。这样做还领导函数呈现出更为灵活的接口，在提供许多参数的情况下，调用起来也不困难。
+
+命名的参数可以任意顺序加以传入，同时有默认值的参数可被省略。因为命名参数就是变量名称，所以下划线与短横线可以交换使用。
+
+#### 可变参数（Variable Arguments）
+
+某些时候，对某个mixin或函数，取未知数目的参数是有意义的。比如，一个用于创建方框阴影的mixin，就可能取任意数量的阴影作为参数。对于这些情形，Sass对“可变参数”具有支持，此特性就是在某个mixin或函数声明的末尾的参数，取得所有剩下的参数并将其打包为一个清单。这些参数与一般参数看起来并无二致，其后跟随了一个`...`。比如：
+
+```scss
+@mixin box-shadow($shadows...) {
+  -moz-box-shadow: $shadows;
+  -webkit-box-shadow: $shadows;
+  box-shadow: $shadows;
+}
+
+.shadows {
+  @include box-shadow(0px 4px 5px #666, 2px 6px 10px #999);
+}
+```
+
+将被编译为：
+
+```css
+.shadows {
+  -moz-box-shadow: 0px 4px 5px #666, 2px 6px 10px #999;
+  -webkit-box-shadow: 0px 4px 5px #666, 2px 6px 10px #999;
+  box-shadow: 0px 4px 5px #666, 2px 6px 10px #999;
+}
+```
+
+可变参数也包含任意传递给mixin或函数的关键字参数（variable arguments also contain any keyword arguments passed to the mixin or function）。这些关键字参数可使用[`keywords(args)`函数](http://sass-lang.com/documentation/Sass/Script/Functions.html#keywords-instance_method)访问到，该函数将以字符串（不带`$`）到值的map形式返回这些关键字参数。
+
+可变参数同样可在调用某个mixin时加以使用。可使用同样语法，将某个值的清单进行扩展，以致每个值都作为单独参数得以传递，或是将某个值的map加以扩展，从而map中的每个键值对，都作为一个关键字参数。比如：
+
+```scss
+@mixin colors($text, $background, $border) {
+  color: $text;
+  background-color: $background;
+  border-color: $border;
+}
+
+$values: #ff0000, #00ff00, #0000ff;
+.primary {
+  @include colors($values...);
+}
+
+$value-map: (text: #00ff00, background: #0000ff, border: #ff0000);
+.secondary {
+  @include colors($value-map...);
+}
+```
+
+将被编译为：
+
+```css
+.primary {
+  color: #ff0000;
+  background-color: #00ff00;
+  border-color: #0000ff;
+}
+
+.secondary {
+  color: #00ff00;
+  background-color: #0000ff;
+  border-color: #ff0000;
+}
+```
+
+只要将清单放在map前面，就可以同时传递一个参数清单和map，就像`@include colors($values..., $map...)`。
+
+可使用可变参数来对某个mixin进行封装，而在不改变该mixin参数署名（the argument signature）的情况下，加入额外样式。如进行了封装，那么那些关键字参数将直接传递给被封装的mixin。比如：
+
+```scss
+@mixin wrapped-stylish-mixin($args...) {
+  font-weight: bold;
+  @include stylish-mixin($args...);
+}
+
+.stylish {
+  // The $width argument will get passed on to "stylish-mixin" as a keyword
+  @include wrapped-stylish-mixin(#00ff00, $width: 100px);
+}
+```
+
+### 将内容块传递给某个mixin(Passing Content Blocks to a Mixin)
+
+将某个一些样式的块，传递给mixin，而放置在该mixin的一些样式内部，是可能的。传入的这些样式，将出现在该mixin中所发现的任何`@content`指令处。此特性令到定义一些与选择器及指令的构造相关的抽象变得可能。
+
+比如：
+
+```scss
+@mixin apply-to-ie6-only {
+  * html {
+    @content;
+  }
+}
+@include apply-to-ie6-only {
+  #logo {
+    background-image: url(/logo.gif);
+  }
+}
+```
+
+将生成：
+
+```css
+* html #logo {
+  background-image: url(/logo.gif);
+}
+```
+
+以`.sass`速记语法，可以这些编写这些mixins:
+
+```scss
+=apply-to-ie6-only
+  * html
+    @content
+
++apply-to-ie6-only
+  #logo
+    background-image: url(/logo.gif)
+```
+
+**注意**：当`@content`指令被多次指定，或在某个循环中指定时，每次调用都将导致样式块被复制。
+
+#### 变量作用域与内容块（Variable Scope and Content Blocks）
+
+传递给某个mixin的内容块，是在该块被定义的地方被执行的，而不是在该mixin中。这就意味着mixin本地的变量，无法在所传入的样式块中进行使用，且这些变量将保留为全局值（this means that variables local to the mixin cannot be used within the passed style block and variables will resolve to the global value）:
+
+```scss
+$color: white;
+@mixin colors($color: blue) {
+  background-color: $color;
+  @content;
+  border-color: $color;
+}
+.colors {
+  @include colors { color: $color; }
+}
+```
+将被编译为：
+
+```css
+.colors {
+  background-color: blue;
+  color: white;
+  border-color: blue;
+}
+```
+
+此外，这也表明所传入的样式块中使用到的变量及mixins，与其它该块被定义处周围的其它样式, 是有联系的（addtionally, this makes it clear that the variables and mixins that are used within the passed block are related to the other styles around where the block is defined）。比如：
+
+```scss
+#sidebar {
+  $sidebar-width: 300px;
+  width: $sidebar-width;
+  @include smartphone {
+    width: $sidebar-width / 3;
+  }
+}
+```
+
+## 函数指令（Function Directives）
+
+在Sass中定义自己的函数，并在任何值或脚本上下文加以使用，是可能的。比如：
+
+```scss
+$grid-width: 40px;
+$gutter-width: 10px;
+
+@function grid-width($n) {
+  @return $n * $grid-width + ($n - 1) * $gutter-width;
+}
+
+#sidebar { width: grid-width(5); }
+```
+
+将变为：
+
+```css
+#sidebar {
+  width: 240px; }
+```
+
+可以看到，就像一个mixin那样，函数可对任何的全局定义变量（any globally defined variables）进行访问，同时接受参数。函数在其内部可有着多条语句，且必须调用`@return`来设置该函数的返回值。
+
+与mixins一样，可使用关键字参数来调用那些Sass定义的函数。在上面的示例中，可以像这样来调用该函数：
+
+```scss
+#sidebar { width: grid-width($n: 5); }
+```
+
+为避免命名上的冲突，建议在自己定义函数前加上前缀，这样做之后，那些阅读样式表的人这些函数不是Sass或CSS的一部分。比如，如你在为ACME集团公司做事，就可以将上面的函数取名为`-acme-grid-width`。
+
+用户定义函数也支持以mixins中同样方式的可变参数。
+
+因为历史原因，函数名称（及所有其它Sass标识符）都可将下划线及短横线互换使用。比如，在定义某个名为`grid-width`的函数后，可作为`grid_width`使用，反之亦然。
+
+## 输出风格（Output Style）
+
+尽管Sass输出的默认CSS风格极为美观，且可反应文档的结构，但由于口味及需求不同，所以Sass还是支持几种其它输出风格。
+
+通过设置[`:style`选项](http://sass-lang.com/documentation/file.SASS_REFERENCE.html#style-option), 或使用`--style`命令行标志，Sass允许在4中不同风格之间加以选择。
+
+### `:nested`风格
+
+嵌套风格是Sass的默认风格，因为其反应了CSS样式及这些样式要赋予到HTML文档的结构。每个属性都占据一行，但缩进量是不同的。各条规则的缩进，是由其嵌套深度决定的。比如：
+
+```css
+#main {
+  color: #fff;
+  background-color: #000; }
+  #main p {
+    width: 10em; }
+
+.huge {
+  font-size: 10em;
+  font-weight: bold;
+  text-decoration: underline; }
+```
+
+在查看大型CSS文件时，嵌套风格极为有用：

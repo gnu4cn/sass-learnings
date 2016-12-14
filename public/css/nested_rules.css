@@ -1,1 +1,6 @@
-@import url("http://fonts.googleapis.com/css?family=DroidSans");
+#sidebar {
+  width: 300px;
+  background-color: yellow;
+  width: 100px;
+  border-color: yellow;
+  font-size: 2em; }

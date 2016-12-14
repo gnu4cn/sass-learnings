@@ -1,2 +1,16 @@
-$family: "Droid+Sans"";
-@import url("http://fonts.googleapis.com/css?family=#{$family}");
+@mixin smartphone ($color: yellow) {
+    background-color: $color;
+    @content;
+    border-color: $color;
+    font:{
+        size: 2em;
+    };
+}
+
+#sidebar {
+    $sidebar-width: 300px;
+    width: $sidebar-width;
+    @include smartphone {
+        width: $sidebar-width / 3;
+    }
+}
