@@ -2158,4 +2158,65 @@ $gutter-width: 10px;
   text-decoration: underline; }
 ```
 
-在查看大型CSS文件时，嵌套风格极为有用：
+在查看大型CSS文件时，嵌套风格极为有用：允许在无需切实阅读任何内容的情况下，就可以轻易地掌握文件结构。
+
+### `:expanded`风格
+
+展开风格（expanded）是一种更典型的手工编写CSS风格，这种风格下每个属性及规则都占据一行。规则内部的那些属性都有缩进，但规则并没有特别方式的缩进。比如：
+
+```scss
+#main {
+  color: #fff;
+  background-color: #000;
+}
+#main p {
+  width: 10em;
+}
+
+.huge {
+  font-size: 10em;
+  font-weight: bold;
+  text-decoration: underline;
+}
+```
+
+### `:compact`风格
+
+比起嵌套与展开风格，紧凑风格占据更少的空间。该风格同样着重于选择器，而不是属性。每条CSS规则占据一行，那一行上定义了所有该规则的属性。嵌套规则是放在各自旁边，而不会占据新行，而单独的规则组别，则有着各自的新行。比如：
+
+```scss
+#main { color: #fff; background-color: #000; }
+#main p { width: 10em; }
+
+.huge { font-size: 10em; font-weight: bold; text-decoration: underline; }
+```
+
+### `:compressed`
+
+压缩风格占据尽可少的空间，除了一些必要的用于分隔选择器的空格外，是没有空格的，同时在文件末尾是没有新行的。该风格还有着一些其它较小的压缩，比如选择颜色的最小表示法。此风格不是人类可以读取的。比如：
+
+```css
+#main{color:#fff;background-color:#000}#main p{width:10em}.huge{font-size:10em;font-weight:bold;text-decoration:underline}
+```
+
+## 对Sass的扩展
+
+Sass对那些有着特别需求的用户，提供了一些高级定制的特性。要使用到这些特性，需要对Ruby编程语言有着很强的掌握。
+
+### 一些定制Sass函数的定义（Defining Custom Sass Functions）
+
+使用Sass提供的Ruby API，用户可以定义自己的Sass函数。关于这方面的更多信息，请参阅[源码文档](http://sass-lang.com/documentation/Sass/Script/Functions.html#adding_custom_functions)。
+
+### 缓存的存储（Cache Stores）
+
+Sass会将已解析的文档加以缓存，从而在这些文档没有变化之前，可在无需再度解析的情况下加以重用。默认Sass会在由`:cache_location`选项所表明的文件系统上的某个位置，写入这些缓存文件。在无法写入文件系统，或需要在ruby线程或机器之间共享缓存时，可定义出自己的缓存存储，并设置[`:cache_store`选项](http://sass-lang.com/documentation/file.SASS_REFERENCE.html#cache_store-option)。关于建立自己的缓存存储，请参阅[源码文档](http://sass-lang.com/documentation/Sass/CacheStores/Base.html)。
+
+### 定制导入器（Custom Importers）
+
+Sass的导入器是负责取得传递给`@import`的路径，并找到这些路径相应的Sass代码。默认代码是从[文件系统](http://sass-lang.com/documentation/Sass/Importers/Filesystem.html)装入的，但可添加一些从数据库、经由HTTP，或使用与Sass所期望的不同文件命名方案来装入。
+
+各个导入器负责单个的装入路径（或后端所决定的某种概念，*译者注*: 数据库、HTTP的URI）。定制导入器可放在[`:load_paths`数组](http://sass-lang.com/documentation/file.SASS_REFERENCE.html#load_paths-option)旁边。
+
+在解析某个`@import`时，Sass将遍历转入路径，查找某个成功装入该路径的导入器。在找到导入器后，就使用该导入的文件。
+
+这些用户建立的导入器，必须继承自[Sass::Importers::Base](http://sass-lang.com/documentation/Sass/Importers/Base.html)。
